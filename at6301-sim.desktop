@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=AT6301 (simulated)
+Comment=Abestop AT6301 front panel on a simulated supply
+Exec=@DIR@/at6301 --sim
+Path=@DIR@
+Terminal=false
+Categories=Utility;Electronics;

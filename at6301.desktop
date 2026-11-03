@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=AT6301
+Comment=Abestop AT6301 bench power supply front panel
+Exec=@DIR@/at6301
+Path=@DIR@
+Terminal=false
+Categories=Utility;Electronics;
