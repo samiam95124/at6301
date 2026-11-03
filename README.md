@@ -4,6 +4,8 @@ A program for macOS and Linux that controls an Abestop AT6301 bench power
 supply (60 V, 10 A, 300 W) over its USB port. It is written in C using the
 AMI tool kit, and the window is drawn to look like the front of the supply.
 
+![The AT6301 panel running on the simulated supply](doc/panel.png)
+
 ## Build and run
 
     make                     # needs ~/projects/amitk built (or set AMIDIR)
