@@ -1,5 +1,6 @@
 # build outputs
 at6301
+at6301.exe
 *.o
 at6301.dSYM/
 AT6301Bar.app/

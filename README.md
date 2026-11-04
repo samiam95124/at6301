@@ -1,6 +1,6 @@
 # AT6301 front panel
 
-A program for macOS and Linux that controls an Abestop AT6301 bench power
+A program for macOS, Linux and Windows that controls an Abestop AT6301 bench power
 supply (60 V, 10 A, 300 W) over its USB port. It is written in C using the
 AMI tool kit, and the window is drawn to look like the front of the supply.
 
@@ -12,6 +12,7 @@ AMI tool kit, and the window is drawn to look like the front of the supply.
     ./at6301                 # finds the supply on USB
     ./at6301 -p /dev/cu.usbserial-1410    # macOS
     ./at6301 -p /dev/ttyUSB0              # Linux
+    ./at6301 -p COM5                      # Windows
     ./at6301 --sim           # no hardware: simulated supply driving an 8 ohm load
     make sim                 # same as ./at6301 --sim
 
@@ -56,10 +57,40 @@ This puts a bolt icon in the menu bar. Its menu has these items:
 The launcher runs the `at6301` program in this folder, so run `make install`
 again if you move the folder.
 
+### Windows: building
+
+The build is by MinGW gcc from an MSYS2 shell (MINGW64 or UCRT64), the same
+toolchain that builds amitk; amitk's INSTALL file says how to set that up.
+With amitk built, `make` here produces `at6301.exe`, which runs from the shell
+or from Explorer. If amitk is not in `~/projects/amitk`, a checkout beside
+this folder is used, or set AMIDIR.
+
+### Windows: the serial port
+
+Windows 10 and 11 fetch a driver for the supply's CH340 adapter the first time
+it is plugged in, after which the supply is a COM port (COM3, COM5...; Device
+Manager lists it under Ports as "USB-SERIAL CH340"). The program finds it by
+itself, taking a CH340 first and any other USB serial adapter after that, and
+never the machine's own COM ports. To pick a port by hand:
+
+    ./at6301 -p COM5
+
+Only one program can hold a COM port at a time. While a terminal program has
+it, the panel shows "COM5 is in use by another program".
+
+### Windows: Start menu entries
+
+    make install             # AT6301 and AT6301 (simulated) in the Start menu
+    make uninstall
+
+The entries run `at6301.exe` in this folder, so run `make install` again if
+you move the folder.
+
 On macOS the supply shows up as `/dev/cu.usbserial-*`, or as
 `/dev/cu.wchusbserial*` if you use the WCH driver. If neither appears, install
-the WCH CH34x driver. On Linux it is `/dev/ttyUSB*`. The program looks for the
-supply every 2 s, so you can plug it in after starting.
+the WCH CH34x driver. On Linux it is `/dev/ttyUSB*`, and on Windows `COMn`.
+The program looks for the supply every 2 s, so you can plug it in after
+starting.
 
 ## Using it
 
@@ -85,7 +116,8 @@ Keyboard shortcuts:
 
 Knob changes are sent after 150 ms with no further turning, so a fast spin
 becomes one command. A `*` on a setting means the change has not been sent
-yet. Presets are kept in `~/.at6301rc`.
+yet. Presets are kept in `~/.at6301rc` (in the user profile folder on
+Windows).
 
 The display shows:
 
@@ -147,10 +179,15 @@ and reconnects.
 - `psu.c`, `psu.h`: the serial link, the command queue and the simulator.
 - `menubar.m`, `menubar.plist`: the macOS menu bar launcher.
 - `at6301.desktop`, `at6301-sim.desktop`: the Linux application menu entries.
+- `startmenu.ps1`: the Windows Start menu entries.
 
 ## Caveats
 
-- Windows has not been tried.
+- On Windows the link has been tried against the real supply for reading
+  only (finding the port, identity, settings and measurements); setting
+  values from Windows has not been exercised yet.
+- Started with wrong options on Windows the program just exits: as a
+  windowed program it has no console to print the usage line to.
 - The panel layout is drawn from the product description, not from the real
   supply, so it is an approximation.
 - I am not sure of the OVP and OCP upper limits (set here to 62 V and 10.5 A).
