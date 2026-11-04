@@ -1,6 +1,6 @@
 /*
  * AT6301 front panel: drive an Abestop AT6301 bench supply from the desktop
- * (macOS or Linux).
+ * (macOS, Linux or Windows).
  *
  * The window is drawn as the face of the supply: the TFT readout at the
  * top, setting keys and the rotary knob below, and the output switch and

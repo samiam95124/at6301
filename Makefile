@@ -1,17 +1,33 @@
 #
 # AT6301 front panel, built on the AMI tool kit (graphical model, static).
 #
-# AMIDIR is where amitk lives; ". setpath" in amitk sets it, otherwise the
-# default below is used.
+# AMIDIR is where amitk lives; ". setpath" in amitk sets it, otherwise an
+# amitk checkout beside this folder is used, or else ~/projects/amitk. (The
+# sibling comes first because make cannot follow a home path with a space
+# in it, which Windows user names often have.)
 #
 # Linux: the graphical library holds whichever backend amitk was built with
 # (lib/graph_backend in amitk records it: wayland, x11 or fb), and the link
 # follows that record.
 #
-AMIDIR ?= $(HOME)/projects/amitk
+# Windows: MinGW gcc from an MSYS2 shell, the same toolchain that builds
+# amitk. The program is at6301.exe and is linked as a windowed program, so
+# no console window comes up behind the panel.
+#
+ifeq ($(OS),Windows_NT)
+    OSTYPE := Windows_NT
+else
+    OSTYPE := $(shell uname)
+endif
 
-OSTYPE := $(shell uname)
+ifneq ($(wildcard ../amitk/lib),)
+    AMIDIR ?= $(abspath ../amitk)
+else
+    AMIDIR ?= $(HOME)/projects/amitk
+endif
+
 AMILIB = $(AMIDIR)/lib/libami_graph.a
+EXE =
 
 ifeq ($(OSTYPE),Darwin)
     SSL_PREFIX := $(shell /opt/homebrew/bin/brew --prefix openssl@3)
@@ -22,6 +38,13 @@ ifeq ($(OSTYPE),Darwin)
            -framework IOKit
     KEEP = -Wl,-u,_ami_maxx
     AMILINK = -Wl,-force_load,$(AMILIB) -Wl,-e,_pa_entry
+else ifeq ($(OSTYPE),Windows_NT)
+    EXE = .exe
+    # setupapi finds the supply's COM port; the rest is what amitk needs
+    LIBS = -lwinmm -lgdi32 -lcomdlg32 -lsetupapi -lssl -lcrypto -lws2_32 -lcrypt32
+    # the whole archive, so the library's event loop and entry stay in
+    KEEP = -mwindows
+    AMILINK = -Wl,--whole-archive $(AMILIB) -Wl,--no-whole-archive
 else
     # which backend the library was built with
     GRAPHICS_BACKEND := $(shell cat $(AMIDIR)/lib/graph_backend 2>/dev/null)
@@ -41,16 +64,23 @@ endif
 
 CC = gcc
 CFLAGS = -g3 -Wall -I$(AMIDIR)/include -I$(AMIDIR)/libc
+ifeq ($(OSTYPE),Windows_NT)
+    # the Windows library keeps its stdio under stdio_ names (the head of
+    # amitk's libc/stdio.c explains); the program must use the same names,
+    # so that its stdout is the window the library opened
+    CFLAGS += -DSTDIO_BYPASS
+endif
 
 SRCS = at6301.c psu.c
+PROG = at6301$(EXE)
 
-all: at6301
+all: $(PROG)
 
-at6301: $(SRCS) psu.h $(AMILIB)
+$(PROG): $(SRCS) psu.h $(AMILIB)
 	$(CC) $(CFLAGS) $(SRCS) $(KEEP) $(AMILINK) $(LIBS) -lm -o $@
 
-sim: at6301
-	./at6301 --sim
+sim: $(PROG)
+	./$(PROG) --sim
 
 ifeq ($(OSTYPE),Darwin)
 
@@ -82,6 +112,28 @@ uninstall:
 	osascript -e 'tell application "System Events" to if exists login item "AT6301Bar" then delete login item "AT6301Bar"'
 	rm -rf $(HOME)/Applications/$(BAR)
 
+else ifeq ($(OSTYPE),Windows_NT)
+
+#
+# Start menu shortcuts (Windows): "AT6301" and "AT6301 (simulated)" in the
+# Start menu. They run the program from this folder, so it finds ami.cfg;
+# run "make install" again if you move the folder.
+#
+# startmenu.ps1 makes and removes the shortcuts through PowerShell, which
+# every Windows has. cygpath turns the MSYS2 form of this folder into the
+# Windows one the shortcut wants.
+#
+HERE_W := $(shell cygpath -w "$(CURDIR)" 2>/dev/null || echo "$(CURDIR)")
+
+install: $(PROG)
+	powershell -NoProfile -ExecutionPolicy Bypass -File startmenu.ps1 install "$(HERE_W)"
+
+uninstall:
+	powershell -NoProfile -ExecutionPolicy Bypass -File startmenu.ps1 uninstall
+
+menubar:
+	@echo "The menu bar launcher is macOS only; use make install for Start menu shortcuts."
+
 else
 
 #
@@ -107,6 +159,6 @@ menubar:
 endif
 
 clean:
-	rm -rf at6301 at6301.dSYM $(BAR)
+	rm -rf at6301 at6301.exe at6301.dSYM $(BAR)
 
 .PHONY: all sim menubar install uninstall clean
